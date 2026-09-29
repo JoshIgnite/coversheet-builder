@@ -57,7 +57,13 @@ def extract_answers_with_gemini(cv_text, additional_text, questions, api_key):
     """
     Uses Google Gemini API to extract exact questions from the candidate documents.
     """
-    client = genai.Client(api_key=api_key)
+    # Sanitize and strip whitespace, newlines, and surrounding quotes from key
+    clean_key = str(api_key).strip().strip('"').strip("'") if api_key else ""
+    
+    if not clean_key:
+        raise ValueError("No Gemini API key provided. Please check sidebar or Streamlit Secrets.")
+
+    client = genai.Client(api_key=clean_key)
     
     q_list = [q["question"] for q in questions]
     
@@ -127,14 +133,14 @@ st.sidebar.header("Configuration")
 
 # Allow team members to input their own Gemini API key or use a fallback environment secret
 user_api_key = st.sidebar.text_input("Enter your Gemini API Key:", type="password")
-api_key = user_api_key or st.secrets.get("GEMINI_API_KEY", "")
+api_key = user_api_key if user_api_key.strip() else st.secrets.get("GEMINI_API_KEY", "")
 
 st.sidebar.markdown("[Get a free Gemini API Key here](https://aistudio.google.com/)")
 
 template_file = st.sidebar.file_uploader("Upload Word Cover Sheet Template (.docx)", type=["docx"])
 
 if not api_key:
-    st.warning("Please enter your Gemini API key in the sidebar to proceed.")
+    st.warning("Please enter your Gemini API key in the sidebar or configure it in Streamlit Secrets to proceed.")
 
 elif template_file:
     template_bytes = template_file.read()
